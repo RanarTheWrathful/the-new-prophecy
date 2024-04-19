@@ -841,10 +841,6 @@ const socketInit = port => {
                 global.gameHeight = m[1];
                 global.roomSetup = JSON.parse(m[2]);
                 break;
-            case 'info': // info
-                global.message = m[0];
-                console.log(m[0]);
-                break;
             case 'c': // force camera move
                 global.player.renderx = global.player.cx = m[0];
                 global.player.rendery = global.player.cy = m[1];
@@ -896,10 +892,10 @@ const socketInit = port => {
                 break;
             case 'm': // message
                 global.messages.push({
-                    text: m[1],
+                    text: m[0],
                     status: 2,
                     alpha: 0,
-                    time: Date.now() + m[0],
+                    time: Date.now(),
                 });
                 break;
             case 'u': // uplink

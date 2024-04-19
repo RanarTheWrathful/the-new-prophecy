@@ -21,7 +21,7 @@ function checkWin() {
             break;
         }
     }
-    if (!team || all < 2) return;
+    if (!team) return;
     won = true;
     sockets.broadcast(getTeamName(team) + " has won the game!");
     setTimeout(closeArena, 3000);

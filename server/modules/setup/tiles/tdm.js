@@ -1,31 +1,43 @@
 let bases = {},
-
-spawnPermanentBaseProtector = (loc, team) => {
+  spawnPermanentBaseProtector = (loc, team) => {
     let o = new Entity(loc);
-    o.define('baseProtector');
+    o.define("baseProtector");
     o.team = team;
-    o.color.base = getTeamColor(team);
-    o.on('dead', () => spawnPermanentBaseProtector(loc, team));
-};
+    o.colorUnboxed.base = getTeamColor(team);
+    o.compressColor();
+    o.on("dead", () => spawnPermanentBaseProtector(loc, team));
+  };
 
-makeBase = (team, hasProtection) => new Tile({
+makeBase = (team, hasProtection) =>
+  new Tile({
     color: getTeamColor(team),
-    init: tile => {
-        if (hasProtection) spawnPermanentBaseProtector(tile.loc, team);
-        if (!room.spawnable[team]) room.spawnable[team] = [];
-        room.spawnable[team].push(tile);
+    init: (tile) => {
+      if (hasProtection) spawnPermanentBaseProtector(tile.loc, team);
+      if (!room.spawnable[team]) room.spawnable[team] = [];
+      room.spawnable[team].push(tile);
     },
-    tick: tile => {
-    	for (let i = 0; i < tile.entities.length; i++) {
-    		let entity = tile.entities[i];
-    		if (entity.team != team && isPlayerTeam(entity.team)) entity.kill();
-    	}
-    }
-});
+    tick: (tile) => {
+      for (let i = 0; i < tile.entities.length; i++) {
+        let entity = tile.entities[i];
+        if (entity.team != team && isPlayerTeam(entity.team)) entity.kill();
+      }
+      for (let i = 0; i < tile.entities.length; i++) {
+        let entity = tile.entities[i];
+      /*/  if (
+          entity.team == team &&
+          !entity.ignoredByAi &&
+          entity.health.amount < entity.health.max &&
+          isPlayerTeam(entity.team) 
+        )
+          entity.health.amount += 0.05;
+        entity.shield.amount += 0.01;/*/
+      }
+    },
+  });
 
 for (let i = 1; i < 9; i++) {
-	bases['base' + i] = makeBase(-i, false);
-	bases['base' + i + 'protected'] = makeBase(-i, true);
+  bases["base" + i] = makeBase(-i, false);
+  bases["base" + i + "protected"] = makeBase(-i, true);
 }
 
 module.exports = bases;

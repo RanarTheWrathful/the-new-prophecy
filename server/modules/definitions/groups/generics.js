@@ -1,4 +1,3 @@
-const { skillSet } = require('../facilitators.js');
 const { base, statnames, dfltskl, smshskl } = require('../constants.js');
 
 Class.genericEntity = {
@@ -17,7 +16,7 @@ Class.genericEntity = {
         ALLOW_BRIGHTNESS_INVERT: true, // Toggles offset invert if exceeding normal color bounds
     },
     INDEPENDENT: false,
-    CONTROLLERS: [],
+    CONTROLLERS: ["doNothing"],
     HAS_NO_MASTER: false,
     MOTION_TYPE: "glide",
     FACING_TYPE: "toTarget",
@@ -119,9 +118,7 @@ Class.genericTank = {
     },
     GUNS: [],
     TURRETS: [],
-    PROPS: [],
     ON: [],
-    ARENA_CLOSER: false, // don't remove this, it stops dev basics going through walls
     GIVE_KILL_MESSAGE: true,
     DRAW_HEALTH: true,
     HITS_OWN_TYPE: "hardOnlyTanks"
@@ -133,32 +130,16 @@ Class.genericSmasher = {
     SKILL_CAP: [smshskl, 0, 0, 0, 0, smshskl, smshskl, smshskl, smshskl, smshskl],
     STAT_NAMES: statnames.smasher,
     BODY: {
+        ACCELERATION: base.ACCEL * 1.1,
+        SPEED: base.SPEED * 1.1,
+        HEALTH: base.HEALTH * 1.35,
+        DAMAGE: base.DAMAGE * 1.2,
+        PENETRATION: base.PENETRATION * 1.1,
+        SHIELD: base.SHIELD * 1.2,
+        REGEN: base.REGEN * 1.25,
         FOV: 1.05 * base.FOV,
         DENSITY: 2 * base.DENSITY
     }
-}
-Class.genericBoss = {
-    PARENT: "genericTank",
-    TYPE: "miniboss",
-    DANGER: 6,
-    SKILL: skillSet({
-        rld: 0.7,
-        dam: 0.5,
-        pen: 0.8,
-        str: 0.8,
-        spd: 0.2,
-        atk: 0.3,
-        hlt: 1,
-        shi: 0.7,
-        rgn: 0.7,
-        mob: 0,
-    }),
-    LEVEL: 45,
-    CONTROLLERS: ["nearestDifferentMaster", "canRepel"],
-    FACING_TYPE: ['spin', {speed: 0.02}],
-    HITS_OWN_TYPE: "hardOnlyBosses",
-    BROADCAST_MESSAGE: "A visitor has left!",
-    BODY: { PUSHABILITY: 0.05 }
 }
 
 Class.food = {
@@ -169,7 +150,6 @@ Class.food = {
     MOTION_TYPE: "drift",
     FACING_TYPE: "turnWithSpeed",
     VARIES_IN_SIZE: true,
-    LEVEL_CAP: 45,
     BODY: {
         STEALTH: 30,
         PUSHABILITY: 1,
@@ -197,6 +177,28 @@ Class.bullet = {
     CAN_GO_OUTSIDE_ROOM: true,
     HITS_OWN_TYPE: "never",
     DIE_AT_RANGE: true,
+};
+Class.speedBullet = {
+    PARENT: ["bullet"],
+    MOTION_TYPE: "accel",
+};
+Class.growBullet = {
+    PARENT: ["bullet"],
+    MOTION_TYPE: "grow",
+};
+Class.flare = {
+    PARENT: ["growBullet"],
+    LABEL: "Flare",
+    SHAPE: 4,
+};
+Class.developerBullet = {
+    PARENT: ["bullet"],
+    SHAPE: [[-1, -1], [1, -1], [2, 0], [1, 1], [-1, 1]],
+};
+Class.casing = {
+    PARENT: ["bullet"],
+    LABEL: "Shell",
+    TYPE: "swarm",
 };
 
 Class.drone = {
@@ -233,32 +235,6 @@ Class.drone = {
     HITS_OWN_TYPE: "hard",
     DRAW_HEALTH: false,
     CLEAR_ON_MASTER_UPGRADE: true,
-    BUFF_VS_FOOD: true,
-};
-
-Class.swarm = {
-    LABEL: "Swarm Drone",
-    TYPE: "swarm",
-    ACCEPTS_SCORE: false,
-    SHAPE: 3,
-    MOTION_TYPE: "swarm",
-    FACING_TYPE: "smoothWithMotion",
-    CONTROLLERS: ["nearestDifferentMaster", "mapTargetToGoal"],
-    CRAVES_ATTENTION: true,
-    COLOR: 'mirror',
-    BODY: {
-        ACCELERATION: 3,
-        PENETRATION: 1.5,
-        HEALTH: 0.175,
-        DAMAGE: 2.25,
-        SPEED: 4.5,
-        RESIST: 1.6,
-        RANGE: 225,
-        DENSITY: 12,
-        PUSHABILITY: 0.6,
-        FOV: 1.5,
-    },
-    DIE_AT_RANGE: true,
     BUFF_VS_FOOD: true,
 };
 
@@ -310,6 +286,24 @@ Class.satellite = {
     MOTION_TYPE: 'motor'
 }
 
+Class.mendersymbol = {
+    PARENT: ["genericTank"],
+    COLOR: "grey",
+    LABEL: "",
+    SHAPE: 3,
+};
+Class.healerBullet = {
+    PARENT: ["bullet"],
+    HEALER: true,
+    HITS_OWN_TYPE: "normal",
+};
+Class.healerSymbol = {
+    PARENT: ["genericEntity"],
+    SHAPE: [[0.3, -0.3],[1,-0.3],[1,0.3],[0.3,0.3],[0.3,1],[-0.3,1],[-0.3,0.3],[-1,0.3],[-1,-0.3],[-0.3,-0.3],[-0.3,-1],[0.3,-1]],
+    SIZE: 13,
+    COLOR: "red",
+};
+
 Class.auraBase = {
     TYPE: "aura",
     ACCEPTS_SCORE: false,
@@ -333,24 +327,24 @@ Class.auraBase = {
     }
 };
 Class.aura = {
-    PARENT: "auraBase",
+    PARENT: ["auraBase"],
     LABEL: "Aura",
     COLOR: "teal",
     BODY: {
-        DAMAGE: 0.15,
+        DAMAGE: 0.5,
     },
 };
 Class.healAura = {
-    PARENT: "auraBase",
+    PARENT: ["auraBase"],
     LABEL: "Heal Aura",
     HEALER: true,
     COLOR: "red",
     BODY: {
-        DAMAGE: 0.05,
+        DAMAGE: 0.1,
     },
 };
 Class.auraSymbol = {
-    PARENT: "genericTank",
+    PARENT: ["genericTank"],
     CONTROLLERS: [["spin", {speed: -0.04}]],
     INDEPENDENT: true,
     COLOR: "teal",

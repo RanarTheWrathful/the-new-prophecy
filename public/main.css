@@ -223,7 +223,7 @@ div {
 
 .startMenuHolder {
     width: 350px;
-    height: 380px;
+    height: 410px;
     padding: 10px;
     overflow: hidden;
     display: inline-block;
@@ -232,7 +232,7 @@ div {
 
 .sliderHolder {
     width: 350px;
-    height: 325px;
+    height: 355px;
     overflow: hidden;
 }
 
@@ -261,7 +261,7 @@ table {
 }
 
 #startMenuSlidingContent {
-    height: 305px;
+    height: 335px;
 }
 
 #startMenuSlidingTrigger {
