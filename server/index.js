@@ -25,7 +25,6 @@ process.stdout.write(String.fromCharCode(27) + "]0;" + c.WINDOW_NAME + String.fr
 util.log(room.width + " x " + room.height + " room initalized.");
 
 // Collision stuff
-const auraCollideTypes = ["miniboss", "tank", "food", "crasher"]
 function collide(collision) {
     // Pull the two objects from the collision grid
     let instance = collision[0],
@@ -109,11 +108,11 @@ function collide(collision) {
                 instance.healer ||
                 other.healer
             )):
-            // Exits if the aura is not hitting a boss, tank, food, or crasher
+            // Exits if the aura is not hitting a boss or tank
             if (instance.type === "aura") {
-                if (!(auraCollideTypes.includes(other.type))) return;
+                if (!(other.type === "tank" || other.type === "miniboss" || other.type == "food")) return;
             } else if (other.type === "aura") {
-                if (!(auraCollideTypes.includes(instance.type))) return;
+                if (!(instance.type === "tank" || instance.type === "miniboss" || instance.type == "food")) return;
             }
             advancedcollide(instance, other, true, true);
             break;
@@ -310,9 +309,6 @@ let maintainloop = () => {
     // upgrade existing ones
     for (let i = 0; i < bots.length; i++) {
         let o = bots[i];
-        if (o.skill.level < c.LEVEL_CAP) {
-            o.skill.score += c.BOT_XP;
-        }
         o.skill.maintain();
         o.skillUp([ "atk", "hlt", "spd", "str", "pen", "dam", "rld", "mob", "rgn", "shi" ][ran.chooseChance(...c.BOT_SKILL_UPGRADE_CHANCES)]);
         if (o.leftoverUpgrades && o.upgrade(ran.irandomRange(0, o.upgrades.length))) {
@@ -333,10 +329,19 @@ let maintainloop = () => {
         o.define(c.SPAWN_CLASS);
         o.refreshBodyAttributes();
         o.isBot = true;
-        o.name = Config.BOT_NAME_PREFIX + ran.chooseBotName();
+        o.name += ran.chooseBotName();
         o.leftoverUpgrades = ran.chooseChance(...c.BOT_CLASS_UPGRADE_CHANCES);
-        let color = c.RANDOM_COLORS ? Math.floor(Math.random() * 20) : team ? getTeamColor(team) : "red";
-        o.color.base = color;
+        let color = c.RANDOM_COLORS ? Math.floor(Math.random() * 20) : team ? getTeamColor(team) : 17;
+        o.colorUnboxed.base = color;
+        o.compressColor(); 
+        o.skill.score = Math.ceil(Math.random()*1250000)-Math.ceil(Math.random()*1250000);
+        if (o.skill.score <= 0) {
+       o.skill.score = 26301;
+        }
+        o.invuln = true;
+setTimeout(() => {
+    o.invuln = false;
+}, 25000);
         if (team) o.team = team;
         bots.push(o);
         o.on('dead', () => util.remove(bots, bots.indexOf(o)));

@@ -76,6 +76,11 @@ let animations = window.animations = {
     disconnected: new Animation(1, 0),
     deathScreen: new Animation(1, 0),
     error: new Animation(1, 0),
+    upgradeMenu: new Animation(0, 1, 0.01),
+    skillMenu: new Animation(0, 1, 0.01),
+    optionsMenu: new Animation(1, 0),
+    minimap: new Animation(-1, 1, 0.025),
+    leaderboard: new Animation(-1, 1, 0.025)
 };
 
 // Mockup functions
@@ -221,7 +226,7 @@ var c = window.canvas.cv;
 var ctx = c.getContext("2d");
 var c2 = document.createElement("canvas");
 var ctx2 = c2.getContext("2d");
-ctx2.imageSmoothingEnabled = true;
+ctx2.imageSmoothingEnabled = false;
 // Animation things
 function Smoothbar(value, speed, sharpness = 3, lerpValue = 0.025) {
     let time = Date.now();
@@ -239,9 +244,6 @@ function Smoothbar(value, speed, sharpness = 3, lerpValue = 0.025) {
             display = util.lerp(display, value, lerpValue);
             if (Math.abs(value - display) < 0.1 && round) display = value;
             return display;
-        },
-        force: (val) => {
-            display = value = val;
         },
     };
 }
@@ -311,7 +313,7 @@ function parseTheme(string){
             lgreen:   colorArray[1],
             orange:   colorArray[2],
             yellow:   colorArray[3],
-            aqua:     colorArray[4],
+            lavender: colorArray[4],
             pink:     colorArray[5],
             vlgrey:   colorArray[6],
             lgrey:    colorArray[7],
@@ -347,7 +349,7 @@ function parseTheme(string){
             content.lgreen,
             content.orange,
             content.yellow,
-            content.aqua,
+            content.lavender,
             content.pink,
             content.vlgrey,
             content.lgrey,
@@ -795,9 +797,10 @@ const drawEntity = (baseColor, x, y, instance, ratio, alpha = 1, scale = 1, line
     if (render.expandsWithDeath) drawSize *= 1 + 0.5 * (1 - fade);
     if (settings.graphical.fancyAnimations && assignedContext != ctx2 && (fade !== 1 || alpha !== 1)) {
         context = ctx2;
-        context.canvas.width = context.canvas.height = drawSize * m.position.axis / ratio * 2 + initStrokeWidth;
+        context.canvas.width = context.canvas.height = drawSize * m.position.axis + ratio * 20;
         xx = context.canvas.width / 2 - (drawSize * m.position.axis * m.position.middle.x * Math.cos(rot)) / 4;
-        yy = context.canvas.height / 2 - (drawSize * m.position.axis * m.position.middle.y * Math.sin(rot)) / 4;
+        yy = context.canvas.height / 2 - (drawSize * m.position.axis * m.position.middle.x * Math.sin(rot)) / 4;
+        context.translate(0.5, 0.5);
     } else {
         if (fade * alpha < 0.5) return;
     }
@@ -911,7 +914,7 @@ const drawEntity = (baseColor, x, y, instance, ratio, alpha = 1, scale = 1, line
     if (assignedContext == false && context != ctx && context.canvas.width > 0 && context.canvas.height > 0) {
         ctx.save();
         ctx.globalAlpha = alpha * fade;
-        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingEnabled = false;
         //ctx.globalCompositeOperation = "overlay";
         ctx.drawImage(context.canvas, x - xx, y - yy);
         ctx.restore();
@@ -929,7 +932,10 @@ function drawHealth(x, y, instance, ratio, alpha) {
         let health = instance.render.health.get(),
             shield = instance.render.shield.get();
         if (health < 0.99 || shield < 0.99) {
-            let col = settings.graphical.coloredHealthbars ? gameDraw.mixColors(gameDraw.modifyColor(instance.color), color.guiwhite, 0.5) : color.lgreen;
+            let instanceColor = instance.color.split(' ')[0];
+            let getColor = true;
+            if (instanceColor[0] == '#') getColor = false;
+            let col = settings.graphical.coloredHealthbars ? gameDraw.mixColors(getColor ? gameDraw.getColor(instanceColor) : instanceColor, color.guiwhite, 0.5) : color.lgreen;
             let yy = y + realSize + 15 * ratio;
             let barWidth = 3 * ratio;
             ctx.globalAlpha = fade * (alpha ** 2);
@@ -960,40 +966,23 @@ function drawHealth(x, y, instance, ratio, alpha) {
     }
 }
 
-const iconColorOrder = [10, 11, 12, 15, 13, 2, 14, 4, 5, 1, 0, 3];
-function getIconColor(colorIndex) {
-    return iconColorOrder[colorIndex % 12].toString();
-}
-
-function drawEntityIcon(model, x, y, len, height, lineWidthMult, angle, alpha, colorIndex, upgradeKey, hover = false) {
+function drawEntityIcon(model, x, y, len, height, lineWidthMult, angle, alpha, colorIndex, upgradeKey) {
     let picture = (typeof model == "object") ? model : util.getEntityImageFromMockup(model, gui.color),
         position = picture.position,
         scale = (0.6 * len) / position.axis,
-        entityX = x + 0.5 * len,
-        entityY = y + 0.5 * height,
+        entityX = x + 0.5 * len - scale * position.middle.x * Math.cos(angle),
+        entityY = y + 0.5 * height - scale * position.middle.x * Math.sin(angle),
         baseColor = picture.color;
-    
-    // Find x and y shift for the entity image
-    let xShift = position.middle.x * Math.cos(angle) - position.middle.y * Math.sin(angle),
-        yShift = position.middle.x * Math.sin(angle) + position.middle.y * Math.cos(angle);
-    entityX -= scale * xShift;
-    entityY -= scale * yShift;
 
     // Draw box
     ctx.globalAlpha = alpha;
-    ctx.fillStyle = picture.upgradeColor != null
-        ? gameDraw.modifyColor(picture.upgradeColor)
-        : gameDraw.getColor(getIconColor(colorIndex));
+    ctx.fillStyle = picture.upgradeColor != null ? gameDraw.getColor(picture.upgradeColor) : gameDraw.getColor((colorIndex > 18 ? colorIndex - 19 : colorIndex).toString());
     drawGuiRect(x, y, len, height);
-    ctx.globalAlpha = 0.25 * alpha;
+    ctx.globalAlpha = 0.1;
+    ctx.fillStyle = picture.upgradeColor != null ? gameDraw.getColor(picture.upgradeColor) : gameDraw.getColor((colorIndex - 9).toString());
+    drawGuiRect(x, y, len, height * 0.6);
     ctx.fillStyle = color.black;
     drawGuiRect(x, y + height * 0.6, len, height * 0.4);
-    // Shading for hover
-    if (hover) {
-        ctx.globalAlpha = 0.15 * alpha;
-        ctx.fillStyle = color.guiwhite;
-        drawGuiRect(x, y, len, height);
-    }
     ctx.globalAlpha = 1;
 
     // Draw Tank
@@ -1004,7 +993,7 @@ function drawEntityIcon(model, x, y, len, height, lineWidthMult, angle, alpha, c
 
     // Upgrade key
     if (upgradeKey) {
-        drawText("[" + upgradeKey + "]", x + len - 4, y + height - 6, height / 8 - 5, color.guiwhite, "right");
+        drawText("[" + upgradeKey + "]", x + len - 4, y + height - 6, height / 8 - 3, color.guiwhite, "right");
     }
     ctx.strokeStyle = color.black;
     ctx.lineWidth = 3 * lineWidthMult;
@@ -1015,8 +1004,8 @@ function drawEntityIcon(model, x, y, len, height, lineWidthMult, angle, alpha, c
 window.requestAnimFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.msRequestAnimationFrame || (callback => setTimeout(callback, 1000 / 60));
 window.cancelAnimFrame = window.cancelAnimationFrame || window.mozCancelAnimationFrame;
 // Drawing states
-const statMenu = Smoothbar(0, 0.7, 1.5, 0.1);
-const upgradeMenu = Smoothbar(0, 2, 3, 0.1);
+const statMenu = Smoothbar(0, 0.7, 1.5, 0.05);
+const upgradeMenu = Smoothbar(0, 2, 3, 0.05);
 // Define the graph constructor
 function graph() {
     var data = [];
@@ -1120,17 +1109,17 @@ let scaleScreenRatio = (by, unset) => {
 var getClassUpgradeKey = function (number) {
     switch (number) {
         case 0:
-            return "Y";
+            return "y";
         case 1:
-            return "U";
+            return "u";
         case 2:
-            return "I";
+            return "i";
         case 3:
-            return "H";
+            return "h";
         case 4:
-            return "J";
+            return "j";
         case 5:
-            return "K";
+            return "k";
         default:
             return null;
     }
@@ -1158,7 +1147,7 @@ let tiles,
         for (let i = 0; i < hasUpgrades.length; i++) {
             let upgrade = hasUpgrades[i],
                 spacing = 2 * Math.max(1, upgrade.tier - tier),
-                measure = measureSize(x, y + spacing, upgrade.upgradeColor ?? i, upgrade);
+                measure = measureSize(x, y + spacing, upgrade.upgradeColor ?? 10 + i, upgrade);
             branches.push([{ x, y: y + Math.sign(i) }, { x, y: y + spacing + 1 }]);
             if (i === hasUpgrades.length - 1 && !noUpgrades.length) {
                 branches.push([{ x: xStart, y: y + 1 }, { x, y: y + 1 }]);
@@ -1171,7 +1160,7 @@ let tiles,
         for (let i = 0; i < noUpgrades.length; i++) {
             let upgrade = noUpgrades[i],
                 height = 2 + upgrades.length;
-            measureSize(x, y + 1 + i + Math.sign(hasUpgrades.length) * 2, upgrade.upgradeColor ?? i, upgrade);
+            measureSize(x, y + 1 + i + Math.sign(hasUpgrades.length) * 2, upgrade.upgradeColor ?? 10 + i, upgrade);
             if (i === noUpgrades.length - 1) {
                 if (hasUpgrades.length > 1) cumulativeWidth++;
                 branches.push([{ x: xStart, y }, { x, y }]);
@@ -1188,10 +1177,10 @@ function generateTankTree(indexes) {
     tiles = [];
     branches = [];
     tankTree = { width: 0, height: 0 };
-    let rightmostSoFar = 0;
+    let rightestSoFar = 0;
     if (!Array.isArray(indexes)) indexes = [indexes];
     for (let index of indexes) {
-        rightmostSoFar += 3 + measureSize(rightmostSoFar, 0, 0, { index }).width;
+        rightestSoFar += 3 + measureSize(rightestSoFar, 0, 10, { index }).width;
     }
     for (let { x, y } of tiles) {
         tankTree.width = Math.max(tankTree.width, x);
@@ -1233,7 +1222,7 @@ function drawFloor(px, py, ratio) {
             ctx.fillRect(left, top, right - left, bottom - top);
         }
     }
-    ctx.lineWidth = 1.25;
+    ctx.lineWidth = 1.5;
     ctx.strokeStyle = settings.graphical.screenshotMode ? color.guiwhite : color.guiblack;
     ctx.globalAlpha = 0.04;
     ctx.beginPath();
@@ -1445,7 +1434,7 @@ function drawMessages(spacing) {
             msg.alpha += 0.05;
         } else if (
             i === 0 &&
-            (global.messages.length > 5 || Date.now() - msg.time > 0)
+            (global.messages.length > 5 || Date.now() - msg.time > 10000)
         ) {
             msg.status -= 0.05;
             msg.alpha -= 0.05;
@@ -1460,6 +1449,7 @@ function drawMessages(spacing) {
 
 function drawSkillBars(spacing, alcoveSize) {
     // Draw skill bars
+    global.canSkill = !!gui.points;
     statMenu.set(0 + (global.died || global.statHover || (global.canSkill && !gui.skills.every(skill => skill.cap === skill.amount))));
     global.clickables.stat.hide();
     let vspacing = 4;
@@ -1632,8 +1622,8 @@ function drawMinimapAndDebug(spacing, alcoveSize) {
     }
     ctx.globalAlpha = 1;
     ctx.lineWidth = 1;
-    ctx.strokeStyle = color.guiblack;
-    ctx.fillStyle = color.guiblack;
+    ctx.strokeStyle = color.black;
+    ctx.fillStyle = color.black;
     drawGuiCircle(x + (global.player.cx / global.gameWidth) * len - 1, y + (global.player.cy / global.gameHeight) * height - 1, 2, false);
     if (global.showDebug) {
         drawGuiRect(x, y - 40, len, 30);
@@ -1681,8 +1671,8 @@ function drawLeaderboard(spacing, alcoveSize, max) {
         drawText(entry.label + (": " + util.handleLargeNumber(Math.round(entry.score))), x + len / 2, y + height / 2, height - 5, nameColor, "center", true);
         // Mini-image
         let scale = height / entry.position.axis,
-            xx = x - 1.5 * height - scale * entry.position.middle.x * Math.SQRT1_2,
-            yy = y + 0.5 * height - scale * entry.position.middle.y * Math.SQRT1_2,
+            xx = x - 1.5 * height - scale * entry.position.middle.x * 0.707,
+            yy = y + 0.5 * height + scale * entry.position.middle.x * 0.707,
             baseColor = entry.color;
         drawEntity(baseColor, xx, yy, entry.image, 1 / scale, 1, (scale * scale) / entry.image.size, 1, -Math.PI / 4, true);
         // Move down
@@ -1692,21 +1682,15 @@ function drawLeaderboard(spacing, alcoveSize, max) {
 
 function drawAvailableUpgrades(spacing, alcoveSize) {
     // Draw upgrade menu
+    upgradeMenu.set(0 + (global.canUpgrade || global.upgradeHover));
+    let glide = upgradeMenu.get();
+    global.clickables.upgrade.hide();
     if (gui.upgrades.length > 0) {
+        global.canUpgrade = true;
         let internalSpacing = 15;
         let len = alcoveSize / 2;
         let height = len;
-
-        // Animation processing
-        let columnCount = Math.max(3, Math.floor(gui.upgrades.length ** 0.55));
-        upgradeMenu.set(0);
-        if (!global.canUpgrade) {
-            upgradeMenu.force(-columnCount * 3)
-            global.canUpgrade = true;
-        }
-        let glide = upgradeMenu.get();
-
-        let x = glide * 2 * spacing + spacing;
+        let x = glide * 2 * spacing - spacing;
         let y = spacing - height - 2.5 * internalSpacing;
         let xStart = x;
         let initialX = x;
@@ -1714,12 +1698,11 @@ function drawAvailableUpgrades(spacing, alcoveSize) {
         let initialY = y;
         let ticker = 0;
         let upgradeNum = 0;
-        let colorIndex = 0;
+        let colorIndex = 10;
+        let columnCount = Math.max(3, Math.ceil(gui.upgrades.length / 4));
         let clickableRatio = global.canvas.height / global.screenHeight / global.ratio;
         let lastBranch = -1;
-        let upgradeHoverIndex = global.clickables.upgrade.check({x: global.mouse.x, y: global.mouse.y});
         upgradeSpin += 0.01;
-
         for (let i = 0; i < gui.upgrades.length; i++) {
             let upgrade = gui.upgrades[i];
             let upgradeBranch = upgrade[0];
@@ -1736,12 +1719,12 @@ function drawAvailableUpgrades(spacing, alcoveSize) {
                         y += 1.5 * internalSpacing;
                     }
                     y += 1.5 * internalSpacing;
-                    colorIndex = 0;
+                    colorIndex = 10;
                 }
                 lastBranch = upgradeBranch;
                 ticker = 0;
             } else {
-                x += len + internalSpacing;
+                x += glide * (len + internalSpacing);
             }
 
             if (y > initialY) initialY = y;
@@ -1750,26 +1733,26 @@ function drawAvailableUpgrades(spacing, alcoveSize) {
             global.clickables.upgrade.place(i, x * clickableRatio, y * clickableRatio, len * clickableRatio, height * clickableRatio);
             let upgradeKey = getClassUpgradeKey(upgradeNum);
 
-            drawEntityIcon(model, x, y, len, height, 1, upgradeSpin, 0.6, colorIndex++, upgradeKey, upgradeNum == upgradeHoverIndex);
+            drawEntityIcon(model, x, y, len, height, 1, upgradeSpin, 0.5, colorIndex++, upgradeKey);
 
             ticker++;
             upgradeNum++;
         }
 
         // Draw dont upgrade button
-        let h = 16,
-            textScale = h - 6,
+        let h = 14,
             msg = "Don't Upgrade",
-            m = measureText(msg, textScale) + 10;
-        let buttonX = initialX + (rowWidth + len - initialX) / 2,
+            m = measureText(msg, h - 3) + 10;
+        let buttonX = initialX + (rowWidth + len + internalSpacing - initialX) / 2,
             buttonY = initialY + height + internalSpacing;
         drawBar(buttonX - m / 2, buttonX + m / 2, buttonY + h / 2, h + settings.graphical.barChunk, color.black);
         drawBar(buttonX - m / 2, buttonX + m / 2, buttonY + h / 2, h, color.white);
-        drawText(msg, buttonX, buttonY + h / 2, textScale, color.guiwhite, "center", true);
+        drawText(msg, buttonX, buttonY + h / 2, h - 2, color.guiwhite, "center", true);
         global.clickables.skipUpgrades.place(0, (buttonX - m / 2) * clickableRatio, buttonY * clickableRatio, m * clickableRatio, h * clickableRatio);
 
         // Upgrade tooltip
-        if (upgradeHoverIndex > -1 && upgradeHoverIndex < gui.upgrades.length) {
+        let upgradeHoverIndex = global.clickables.upgrade.check({x: global.mouse.x, y: global.mouse.y});
+        if (upgradeHoverIndex > -1) {
             let picture = gui.upgrades[upgradeHoverIndex][2];
             if (picture.upgradeTooltip.length > 0) {
                 let boxWidth = measureText(picture.name, alcoveSize / 10),
@@ -1797,7 +1780,6 @@ function drawAvailableUpgrades(spacing, alcoveSize) {
         }
     } else {
         global.canUpgrade = false;
-        upgradeMenu.force(0);
         global.clickables.upgrade.hide();
         global.clickables.skipUpgrades.hide();
     }
@@ -1833,7 +1815,6 @@ const gameDrawAlive = (ratio, drawRatio) => {
     gui.__s.update();
     let lb = leaderboard.get();
     let max = lb.max;
-    global.canSkill = !!gui.points && !global.showTree;
     if (global.showTree) {
         drawUpgradeTree(spacing, alcoveSize);
     } else {
@@ -1899,11 +1880,11 @@ const gameDrawDead = () => {
         position = global.mockups[parseInt(gui.type.split("-")[0])].position,
         scale = len / position.axis,
         xx = global.screenWidth / 2 - scale * position.middle.x * 0.707,
-        yy = global.screenHeight / 2 - 35 + scale * position.middle.y * 0.707,
+        yy = global.screenHeight / 2 - 35 + scale * position.middle.x * 0.707,
         picture = util.getEntityImageFromMockup(gui.type, gui.color),
         baseColor = picture.color;
     drawEntity(baseColor, (xx - 190 - len / 2 + 0.5) | 0, (yy - 10 + 0.5) | 0, picture, 1.5, 1, (0.5 * scale) / picture.realSize, 1, -Math.PI / 4, true);
-    drawText("You died!", x, y - 80, 16, color.guiwhite, "center");
+    drawText("If you need instructions on how to get through the hotels, check out the enclosed instruction book.", x, y - 80, 8, color.guiwhite, "center");
     drawText("Level " + gui.__s.getLevel() + " " + picture.name, x - 170, y - 30, 24, color.guiwhite);
     drawText("Final score: " + util.formatLargeNumber(Math.round(global.finalScore.get())), x - 170, y + 25, 50, color.guiwhite);
     drawText("⌚ Survived for " + util.timeForHumans(Math.round(global.finalLifetime.get())), x - 170, y + 55, 16, color.guiwhite);
@@ -1983,16 +1964,11 @@ function animloop() {
             gameDrawDisconnected();
         }
         ctx.translate(-0.5, -0.5);
-
-    //oh no we need to throw an error!
     } catch (e) {
-
-        //hold on....
         gameDrawError();
         ctx.translate(-0.5, -0.5);
-
-        //okay, NOW throw the error!
-        throw e;
+        console.log(e);
+        throw Error('Something has gone wrong!');
     }
 }
 

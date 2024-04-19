@@ -1,98 +1,20 @@
 let compressMovementOffsets = [
-        { x: 1, y: 0},
-        { x: 1, y: 1},
-        { x: 0, y: 1},
-        { x:-1, y: 1},
-        { x:-1, y: 0},
-        { x:-1, y:-1},
-        { x: 0, y:-1},
-        { x: 1, y:-1}
-    ],
-    compressMovement = (current, goal) => {
-        let offset = compressMovementOffsets[
-            Math.round(( Math.atan2(current.y - goal.y, current.x - goal.x) / (Math.PI * 2) ) * 8 + 4) % 8
-        ];
-        return {
-            x: current.x + offset.x,
-            y: current.y + offset.y
-        }
-    },
-    CLLonSegment = (p0, p1, q0, q1, r0, r1) => {
-        return q0 <= Math.max(p0, r0) && q0 >= Math.min(p0, r0) && q1 <= Math.max(p1, r1) && q1 >= Math.min(p1, r1);
-    },
-    CLLorientation = (p0, p1, q0, q1, r0, r1) => {
-        let v = (q1 - p1) * (r0 - q0) - (q0 - p0) * (r1 - q1);
-        return !v ? 0 : v > 0 ? 1 : 2; // clock or counterclock wise
-    },
-    collisionLineLine = (p10, p11, q10, q11, p20, p21, q20, q21) => {
-        // Find the four orientations needed for general and special cases
-        let o1 = CLLorientation(p10, p11, q10, q11, p20, p21),
-            o2 = CLLorientation(p10, p11, q10, q11, q20, q21),
-            o3 = CLLorientation(p20, p21, q20, q21, p10, p11),
-            o4 = CLLorientation(p20, p21, q20, q21, q10, q11);
-
-        return (
-            (o1 == 0 && CLLonSegment(p10, p11, p20, p21, q10, q11)) ||
-            (o2 == 0 && CLLonSegment(p10, p11, q20, q21, q10, q11)) ||
-            (o3 == 0 && CLLonSegment(p20, p21, p10, p11, q20, q21)) ||
-            (o4 == 0 && CLLonSegment(p20, p21, q10, q11, q20, q21)) ||
-            (o1 != o2 && o3 != o4)
-        );
-    },
-    // TODO: make this not lag entire server
-    calcHowMuchAheadToShoot = (me, enemy) => {
-        // Calculate relative position and velocity of enemy
-        let relativeVelocity = {
-                x: enemy.velocity.x - me.velocity.x,
-                y: enemy.velocity.y - me.velocity.y
-            },
-            timeToIntercept = null,
-            projectileSpeed = null;
-
-        // Calculate time to intercept
-        me.guns.forEach(gun => {
-            if (gun.settings) projectileSpeed += gun.settings.speed;
-        });
-        projectileSpeed /= me.guns.length;
-        timeToIntercept = util.getDistance(me, enemy) / projectileSpeed;
-
-        // Predict future position of the enemy
-        return {
-            x: enemy.x + relativeVelocity.x * timeToIntercept,
-            y: enemy.y + relativeVelocity.y * timeToIntercept
-        };
-    },
-    // me: { ...Vector }
-    // enemy: data to calculte where it is gonna be soon
-    // walls: Array<{ ...Vector, hitboxRadius, hitbox: Array<[Vector, Vector]> }>
-    wouldHitWall = (me, enemy) => {
-        // thing for culling off walls where theres no point of checking
-        let inclusionCircle = {
-            x: (me.x + enemy.x) / 2,
-            y: (me.y + enemy.y) / 2,
-            radius: util.getDistance(me, enemy) / 2
-        };
-
-        for (let i = 0; i < walls.length; i++) {
-            let crate = walls[i];
-
-            //avoid calculating collisions if it would just be a waste
-            if (util.getDistanceSquared(inclusionCircle, crate) > (inclusionCircle.radius + crate.hitboxRadius) ** 2) continue;
-
-            //if the crate intersects with the line, add them to the list of walls that have been hit
-            //works by checking if the line from the gun end to the enemy position collides with any line from the crate hitbox
-            for (let j = 0; j < crate.hitbox.length; j++) {
-                let hitboxLine = crate.hitbox[j];
-                if (collisionLineLine(
-                    me.x, me.y,
-                    enemy.x, enemy.y,
-                    crate.x + hitboxLine[0].x, crate.y + hitboxLine[0].y,
-                    crate.x + hitboxLine[1].x, crate.y + hitboxLine[1].y
-                )) return true;
-            }
-        }
-        return false;
-    };
+    { x: 1, y: 0},
+    { x: 1, y: 1},
+    { x: 0, y: 1},
+    { x:-1, y: 1},
+    { x:-1, y: 0},
+    { x:-1, y:-1},
+    { x: 0, y:-1},
+    { x: 1, y:-1}
+],
+compressMovement = (current, goal) => {
+    let offset = compressMovementOffsets[Math.round(( Math.atan2(current.y - goal.y, current.x - goal.x) / (Math.PI * 2) ) * 8 + 4) % 8];
+    return {
+        x: current.x + offset.x,
+        y: current.y + offset.y
+    }
+};
 
 // Define IOs (AI)
 class IO {
@@ -418,8 +340,6 @@ class io_stackGuns extends IO {
 class io_nearestDifferentMaster extends IO {
     constructor(body, opts = {}) {
         super(body);
-        this.lookAtDanger = opts.lookAtDanger || true;
-        this.timeout = opts.timeout || 90;
         this.accountForMovement = opts.accountForMovement || true;
         this.targetLock = undefined;
         this.tick = ran.irandom(30);
@@ -455,15 +375,8 @@ class io_nearestDifferentMaster extends IO {
                 return true;
             }
         }).filter((e) => {
-            // Even more expensive
-            return !wouldHitWall(this.body, e);
-        }).filter((e) => {
             // Only return the highest tier of danger
-            if (
-                this.body.aiSettings.farm ||
-                e.dangerValue === mostDangerous &&
-                this.lookAtDanger
-            ) {
+            if (this.body.aiSettings.farm || e.dangerValue === mostDangerous) {
                 if (this.targetLock && e.id === this.targetLock.id) keepTarget = true;
                 return true;
             }
@@ -498,10 +411,7 @@ class io_nearestDifferentMaster extends IO {
             range = 640 * this.body.FOV;
         }
         // Check if my target's alive
-        if (this.targetLock && (
-            !this.validate(this.targetLock, this.body, this.body.master.master, range * range, range * range * 4 / 3) ||
-            wouldHitWall(this.body, this.targetLock) // Very expensive
-        )) {
+        if (this.targetLock && !this.validate(this.targetLock, this.body, this.body.master.master, range * range, range * range * 4 / 3)) {
             this.targetLock = undefined;
             this.tick = 100;
         }
@@ -519,7 +429,7 @@ class io_nearestDifferentMaster extends IO {
                     x: this.body.x,
                     y: this.body.y
                 });
-                this.tick = -this.timeout;
+                this.tick = -90;
             }
         }
         // Lock onto whoever's shooting me.
@@ -725,31 +635,6 @@ class io_spin extends IO {
         };
     }
 }
-class io_spin2 extends IO {
-    constructor(body, opts = {}) {
-        super(body);
-        this.speed = opts.speed ?? 0.04;
-        this.reverseOnAlt = opts.reverseOnAlt ?? true;
-        this.lastAlt = -1;
-        this.reverseOnTheFly = opts.reverseOnTheFly ?? false;
-
-        // On spawn logic
-        let alt = this.body.master.control.alt;
-        let reverse = (this.reverseOnAlt && alt) ? -1 : 1;
-        this.body.facingType = ["spin", {speed: this.speed * reverse}];
-    }
-    think(input) {
-        if (!this.reverseOnTheFly) return;
-
-        // Live logic
-        let alt = this.body.master.control.alt;
-        if (this.lastAlt != alt) {
-            let reverse = (this.reverseOnAlt && alt) ? -1 : 1;
-            this.body.facingType = ["spin", {speed: this.speed * reverse}];
-            this.lastAlt = alt;
-        }
-    }
-}
 class io_fleeAtLowHealth extends IO {
     constructor(b) {
         super(b)
@@ -796,10 +681,7 @@ class io_wanderAroundMap extends IO {
         this.spot = ran.choose(room.spawnableDefault).loc;
     }
     think(input) {
-        if (
-            new Vector( this.body.x - this.spot.x, this.body.y - this.spot.y ).isShorterThan(50) ||
-            wouldHitWall(this.body, this.spot)
-        ) {
+        if (new Vector( this.body.x - this.spot.x, this.body.y - this.spot.y ).isShorterThan(50)) {
             this.spot = ran.choose(room.spawnableDefault).loc;
         }
         if (input.goal == null && !this.body.autoOverride) {
@@ -949,7 +831,6 @@ let ioTypes = {
     targetSelf: io_targetSelf,
     onlyAcceptInArc: io_onlyAcceptInArc,
     spin: io_spin,
-    spin2: io_spin2,
 
     //movement related
     canRepel: io_canRepel,

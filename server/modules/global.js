@@ -10,7 +10,6 @@ global.protocol = require(".././lib/fasttalk.js");
 global.fps = "Unknown";
 global.minimap = [];
 global.entities = [];
-global.walls = [];
 global.views = [];
 global.chats = {};
 global.entitiesToAvoid = [];
@@ -18,7 +17,6 @@ global.grid = new hshg.HSHG();
 global.arenaClosed = false;
 global.mockupsLoaded = false;
 
-global.loadedAddons = [];
 global.TEAM_BLUE = -1;
 global.TEAM_GREEN = -2;
 global.TEAM_RED = -3;
@@ -30,8 +28,8 @@ global.TEAM_CYAN = -8;
 global.TEAM_ROOM = -100;
 global.TEAM_ENEMIES = -101;
 global.getSpawnableArea = team => ran.choose((team in room.spawnable && room.spawnable[team].length) ? room.spawnable[team] : room.spawnableDefault).randomInside();
-global.getTeamName = team => ["BLUE", "GREEN", "RED", "PURPLE", "YELLOW", "ORANGE", "BROWN", "CYAN"][-team - 1] || "An unknown team";
-global.getTeamColor = team => ([10, 11, 12, 15, 25, 26, 27, 28][-team - 1] || 3);
+global.getTeamName = team => ["The Guardians", "The Fallen", "The Highlords", "The Voidlords", "YELLOW", "ORANGE", "BROWN", "CYAN"][-team - 1] || "An unknown team";
+global.getTeamColor = team => (['#96d4f3', '#bebebe', '#bbb196', 19, 25, 26, 27, 28][-team - 1] || 3);
 global.isPlayerTeam = team => /*team < 0 && */team > -9;
 global.getWeakestTeam = () => {
     let teamcounts = {};
@@ -80,44 +78,8 @@ global.tickEvents = new EventEmitter();
 global.syncedDelaysLoop = () => tickEvents.emit(tickIndex++);
 global.setSyncedTimeout = (callback, ticks = 0, ...args) => tickEvents.once(tickIndex + Math.round(ticks), () => callback(...args));
 
-function TO_SCREAMING_SNAKE_CASE(TEXT) {
-    if (/^[A-Z_]*[A-Z]$/.test(TEXT)) {
-        return TEXT;
-    } else if (/[a-zA-Z]+/.test(TEXT)) {
-        return TEXT.replace(/[A-Z]/g, _ => '_' + _).toUpperCase();
-    }
-}
-
-global.c = new Proxy(new EventEmitter(), {
-    get (obj, prop) {
-        return obj[TO_SCREAMING_SNAKE_CASE(prop)];
-    },
-    set (obj, prop, value) {
-        let abort;
-        prop = TO_SCREAMING_SNAKE_CASE(prop);
-
-        events.emit('change', {
-            setting: prop,
-            newValue: value,
-            oldValue: obj[prop],
-            preventDefault: () => abort = true
-        });
-
-        if (!abort) {
-            obj[prop] = value;
-        }
-    }
-});
-global.c.port = process.env.PORT;
-global.Config = global.c;
-
-for (let [key, value] of Object.entries(require('./setup/config.js'))) {
-    if (key in EventEmitter.prototype) {
-        util.warn(`Configuration contains "${key}", which is in 'EventEmitter.prototype' and its value is therefore discarded.`);
-    } else {
-        global.c[key] = value;
-    }
-}
+global.c = require("./setup/config.js");
+global.c.port = process.env.PORT || c.port;
 
 global.Class = {};
 global.ensureIsClass = str => {
@@ -127,43 +89,14 @@ global.ensureIsClass = str => {
     if (str in Class) {
         return Class[str];
     }
-    console.log('Definitions:');
     console.log(Class);
     throw Error(`Definition ${str} is attempted to be gotten but does not exist!`);
-}
-global.makeHitbox = wall => {
-    const _size = wall.size + 4;
-    //calculate the relative corners
-    let relativeCorners = [
-            Math.atan2(    _size,     _size) + wall.angle,
-            Math.atan2(0 - _size,     _size) + wall.angle,
-            Math.atan2(0 - _size, 0 - _size) + wall.angle,
-            Math.atan2(    _size, 0 - _size) + wall.angle
-        ],
-        distance = Math.sqrt(_size ** 2 + _size ** 2);
-
-    //convert 4 corners into 4 lines
-    for (let i = 0; i < 4; i++) {
-        relativeCorners[i] = {
-            x: distance * Math.sin(relativeCorners[i]),
-            y: distance * Math.cos(relativeCorners[i])
-        };
-    }
-
-    wall.hitbox = [
-        [relativeCorners[0], relativeCorners[1]],
-        [relativeCorners[1], relativeCorners[2]],
-        [relativeCorners[2], relativeCorners[3]],
-        [relativeCorners[3], relativeCorners[0]]
-    ];
-    wall.hitboxRadius = distance;
 }
 
 // Now that we've set up the global variables, we import all the modules, then put them into global varialbles and then export something just so this file is run.
 const requires = [
     "./physics/relative.js", // Some basic physics functions that are used across the game.
     "./physics/collisionFunctions.js", // The actual collision functions that make the game work.
-    "./live/color.js", // The class that makes dealing with colors easier.
     "./live/entitySubFunctions.js", // Skill, HealthType and other functions related to entities are here.
     "./live/controllers.js", // The AI of the game.
     "./live/entity.js", // The actual Entity constructor.

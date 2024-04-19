@@ -3,8 +3,8 @@ module.exports = {
 
     // Game server domain.
     // If 'localhost:NUMBER', the port must equal the port setting.
-    host: "localhost:26301",
-
+   //host: "the-new-prophecy.glitch.me",
+  host: "prophecized-testing.glitch.me",
     // Which port to run the web server on.
     port: 26301,
 
@@ -29,8 +29,8 @@ module.exports = {
     ROOM_SETUP: ['map_apspp_default'],
 
     // The dimensions of a single tile on the map.
-    TILE_WIDTH: 400,
-    TILE_HEIGHT: 400,
+    TILE_WIDTH: 300,
+    TILE_HEIGHT: 300,
 
 
 
@@ -57,10 +57,8 @@ module.exports = {
     WELCOME_MESSAGE: "You have spawned! Welcome to the game.\n"
                     +"You will be invulnerable until you move or shoot.\n"
                     +"Please report any bugs you encounter!",
-    
-    // How long a popup message lasts before fading out in milliseconds.
-    MESSAGE_DISPLAY_TIME: 10_000,
-    
+
+
 
     // Physics
 
@@ -107,7 +105,7 @@ module.exports = {
     LEVEL_CHEAT_CAP: 45,
 
     // Amount of player-bots to spawn.
-    BOTS: 0,
+    BOTS: 16,
 
     // How much XP player-bots get per second until they reach LEVEL_CAP.
     BOT_XP: 125,
@@ -118,9 +116,6 @@ module.exports = {
     // The chances of a player-bot upgrading a specific amount of times before it stops upgrading.
     BOT_CLASS_UPGRADE_CHANCES: [ 1, 5, 20, 37, 37],
 
-    // The prefix of the bot's name.
-    BOT_NAME_PREFIX: "[AI] ",
-
     // The class that players and player-bots spawn as.
     SPAWN_CLASS: "basic",
 
@@ -128,11 +123,11 @@ module.exports = {
 
     // Natural Spawns
 
-    FOOD_CAP: 3, // Max normal food per normal tile.
-    FOOD_SPAWN_CHANCE: 0.875, // Likeliness of normal food spawn attempts succeeding.
+    FOOD_CAP: 2, // Max normal food per normal tile.
+    FOOD_SPAWN_CHANCE: 0.875, // Likeliness of normal food spawn attempts succeedingg.
     FOOD_SPAWN_COOLDOWN: 30, // Cooldown (in game ticks) of food spawn attempts being made.
 
-    FOOD_CAP_NEST: 3, // Max nest food per nest tile.
+    FOOD_CAP_NEST: 2, // Max nest food per nest tile.
     FOOD_SPAWN_CHANCE_NEST: 0.25, // Likeliness of nest food spawn attempts succeeding.
     FOOD_SPAWN_COOLDOWN_NEST: 45, // Cooldown (in game ticks) of nest food spawn attempts being made.
 
@@ -151,22 +146,19 @@ module.exports = {
         [2000, [
             [1024, 'egg'], [256, 'square'], [64, 'triangle'], [16, 'pentagon'], [4, 'betaPentagon'], [1, 'alphaPentagon']
         ]],
-        [1, [
+        [0.01, [
             [3125, 'gem'], [625, 'shinySquare'], [125, 'shinyTriangle'], [25, 'shinyPentagon'], [5, 'shinyBetaPentagon'], [1, 'shinyAlphaPentagon']
         ]],
-        [0.1, [
+        [0.001, [
             [6836, 'jewel'], [1296, 'legendarySquare'], [216, 'legendaryTriangle'], [36, 'legendaryPentagon'], [6, 'legendaryBetaPentagon'], [1, 'legendaryAlphaPentagon']
         ]],
-        [0.005, [
+        [0.0005, [
             /*[16807, 'egg'], */[2401, 'shadowSquare'], [343, 'shadowTriangle'], [49, 'shadowPentagon'], [7, 'shadowBetaPentagon'], [1, 'shadowAlphaPentagon']
         ]],
-        [0.001, [
+        [0.00005, [
             /*[65536, 'egg'], */[8192, 'rainbowSquare'], [1024, 'rainbowTriangle'], [64, 'rainbowPentagon'], [8, 'rainbowBetaPentagon'], [1, 'rainbowAlphaPentagon']
         ]],
-        [0.0005, [
-            [59549, 'egg'], [6561, 'transSquare'], [729, 'transTriangle'], [81, 'transPentagon'], [9, 'transBetaPentagon'], [1, 'transAlphaPentagon']
-        ]],
-        [0.0001, [
+        [0.000001, [
             [100000, 'sphere'], [10000, 'cube'], [1000, 'tetrahedron'], [100, 'octahedron'], [10, 'dodecahedron'], [1, 'icosahedron']
         ]]
     ],
@@ -212,7 +204,7 @@ module.exports = {
 
 
 
-    // Default values for gamemode related stuff.
+    // Gamemode related.
     // Do not change these, you'll likely break stuff.
     // Change GAME_MODES instead.
     GAMEMODE_NAME_PREFIXES: [],
